@@ -13,10 +13,8 @@ import { loadFixerFormatter, loadLinterFormatter } from "./formatter";
 import { resolveFormatter as resolveLinterFormatter } from "@textlint/linter-formatter";
 import { resolveFormatter as resolveFixerFormatter } from "@textlint/fixer-formatter";
 import {
-    TextlintKernelDescriptor,
-    TextlintKernelRule,
-    TextlintKernelFilterRule,
-    TextlintKernelPlugin
+    TextlintKernelDescriptor
+    // Removed unused imports
 } from "@textlint/kernel";
 
 const debug = debug0("textlint:cli");
@@ -49,7 +47,8 @@ function shallowMerge(targetDescriptor: TextlintKernelDescriptor, sourceDescript
             ...targetDescriptor.plugin.toKernelPluginsFormat(),
             ...(sourceDescriptor.plugin ? sourceDescriptor.plugin.toKernelPluginsFormat() : [])
         ],
-        configBaseDir: sourceDescriptor.configBaseDir || targetDescriptor.configBaseDir
+        // Ensure that configBaseDir from sourceDescriptor is set if available
+        configBaseDir: sourceDescriptor.configBaseDir ? sourceDescriptor.configBaseDir : targetDescriptor.configBaseDir
     });
     return mergedDescriptor;
 }
@@ -64,10 +63,8 @@ const loadDescriptor = async (cliOptions: CliOptions) => {
           })
         : await loadBuiltinPlugins();
     debug("textlintrcDescriptor: %j", textlintrcDescriptor);
-    // Exclude the configBaseDir property from textlintrcDescriptor
-    const { configBaseDir, ...descriptorWithoutBaseDir } = textlintrcDescriptor;
-    // Properly merge cliDescriptor and descriptorWithoutBaseDir
-    const mergedDescriptor = shallowMerge(cliDescriptor, descriptorWithoutBaseDir);
+    // Merge cliDescriptor and textlintrcDescriptor including configBaseDir
+    const mergedDescriptor = shallowMerge(cliDescriptor, textlintrcDescriptor);
     debug("mergedDescriptor: %j", mergedDescriptor);
     return mergedDescriptor;
 };
@@ -104,7 +101,11 @@ export const cli = {
             });
         } else if (currentOptions.printConfig) {
             const descriptor = await loadDescriptor(currentOptions);
-            Logger.log(JSON.stringify(descriptor, null, 4));
+            const descriptorWithBaseDir = {
+                ...descriptor.toJSON(),
+                configBaseDir: descriptor.configBaseDir
+            };
+            Logger.log(JSON.stringify(descriptorWithBaseDir, null, 4));
             return Promise.resolve(0);
         } else if (currentOptions.help || (!files.length && !text)) {
             Logger.log(options.generateHelp());
