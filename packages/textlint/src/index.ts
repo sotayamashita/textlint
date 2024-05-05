@@ -19,14 +19,6 @@ export { textlint } from "./textlint";
 export { TextLintEngine } from "./DEPRECATED/textlint-engine";
 
 /**
- * TextFixEngine is a wrapper around `textlint` for linting **multiple** files
- * include formatter, detecting utils
- * You can see engine/textlint-engine-core.js for more detail
- * @deprecated use New APIs
- */
-export { TextFixEngine } from "./DEPRECATED/textfix-engine";
-
-/**
  * Core API for linting a **single** text or file.
  * @deprecated use New APIs or @textlint/kernel
  */
