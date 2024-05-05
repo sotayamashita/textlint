@@ -12,6 +12,12 @@ import { printResults, showEmptyRuleWarning } from "./cli-util";
 import { loadFixerFormatter, loadLinterFormatter } from "./formatter";
 import { resolveFormatter as resolveLinterFormatter } from "@textlint/linter-formatter";
 import { resolveFormatter as resolveFixerFormatter } from "@textlint/fixer-formatter";
+import {
+    TextlintKernelDescriptor,
+    TextlintKernelRule,
+    TextlintKernelFilterRule,
+    TextlintKernelPlugin
+} from "@textlint/kernel";
 
 const debug = debug0("textlint:cli");
 type StdinExecuteOption = {
@@ -29,6 +35,25 @@ const isStdinExecution = (executeOptions: ExecuteOptions): executeOptions is Std
     return "text" in executeOptions;
 };
 
+function shallowMerge(targetDescriptor: TextlintKernelDescriptor, sourceDescriptor: Partial<TextlintKernelDescriptor>) {
+    const mergedDescriptor = new TextlintKernelDescriptor({
+        rules: [
+            ...targetDescriptor.rule.toKernelRulesFormat(),
+            ...(sourceDescriptor.rule ? sourceDescriptor.rule.toKernelRulesFormat() : [])
+        ],
+        filterRules: [
+            ...targetDescriptor.filterRule.toKernelFilterRulesFormat(),
+            ...(sourceDescriptor.filterRule ? sourceDescriptor.filterRule.toKernelFilterRulesFormat() : [])
+        ],
+        plugins: [
+            ...targetDescriptor.plugin.toKernelPluginsFormat(),
+            ...(sourceDescriptor.plugin ? sourceDescriptor.plugin.toKernelPluginsFormat() : [])
+        ],
+        configBaseDir: sourceDescriptor.configBaseDir || targetDescriptor.configBaseDir
+    });
+    return mergedDescriptor;
+}
+
 const loadDescriptor = async (cliOptions: CliOptions) => {
     const cliDescriptor = await loadCliDescriptor(cliOptions);
     debug("cliDescriptor: %j", cliDescriptor);
@@ -39,7 +64,10 @@ const loadDescriptor = async (cliOptions: CliOptions) => {
           })
         : await loadBuiltinPlugins();
     debug("textlintrcDescriptor: %j", textlintrcDescriptor);
-    const mergedDescriptor = cliDescriptor.concat(textlintrcDescriptor);
+    // Exclude the configBaseDir property from textlintrcDescriptor
+    const { configBaseDir, ...descriptorWithoutBaseDir } = textlintrcDescriptor;
+    // Properly merge cliDescriptor and descriptorWithoutBaseDir
+    const mergedDescriptor = shallowMerge(cliDescriptor, descriptorWithoutBaseDir);
     debug("mergedDescriptor: %j", mergedDescriptor);
     return mergedDescriptor;
 };
@@ -113,6 +141,7 @@ export const cli = {
         // cli > textlintrc
         // if cli and textlintrc have same option, cli option is prior.
         const descriptor = await loadDescriptor(cliOptions);
+
         const hasRuleAtLeastOne = descriptor.rule.lintableDescriptors.length > 0;
         if (!hasRuleAtLeastOne) {
             showEmptyRuleWarning();
