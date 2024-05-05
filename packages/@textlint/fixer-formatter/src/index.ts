@@ -66,13 +66,11 @@ ${ex}`);
 }
 
 /**
- * @deprecated use loadFormatter
- * @param formatterConfig
+ * resolveFormatter checks if a formatter can be resolved without importing it.
+ * @param {string} formatterName - The name of the formatter to resolve.
+ * @returns {string | null} - The path to the formatter if found, otherwise null.
  */
-export function createFormatter(formatterConfig: FormatterConfig) {
-    const formatterName = formatterConfig.formatterName;
-    debug(`formatterName: ${formatterName}`);
-    let formatter: (results: TextlintFixResult[], formatterConfig: FormatterConfig) => string;
+export function resolveFormatter(formatterName: string): string | null {
     let formatterPath;
     if (fs.existsSync(formatterName)) {
         formatterPath = formatterName;
@@ -90,17 +88,7 @@ export function createFormatter(formatterConfig: FormatterConfig) {
             }
         }
     }
-    try {
-        formatter = moduleInterop(require(formatterPath));
-    } catch (ex) {
-        throw new Error(`Could not find formatter ${formatterName}
-See https://github.com/textlint/textlint/issues/148
-${ex}`);
-    }
-    debug(`use formatter: ${formatterPath}`);
-    return function (results: TextlintFixResult[]) {
-        return formatter(results, formatterConfig);
-    };
+    return formatterPath ? formatterPath : null;
 }
 
 export interface FixerFormatterDetail {

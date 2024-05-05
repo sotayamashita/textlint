@@ -68,6 +68,32 @@ ${ex}`);
 }
 
 /**
+ * resolveFormatter checks if a formatter can be resolved without importing it.
+ * @param {string} formatterName - The name of the formatter to resolve.
+ * @returns {string | null} - The path to the formatter if found, otherwise null.
+ */
+export function resolveFormatter(formatterName: string): string | null {
+    let formatterPath;
+    if (fs.existsSync(formatterName)) {
+        formatterPath = formatterName;
+    } else if (fs.existsSync(path.resolve(process.cwd(), formatterName))) {
+        formatterPath = path.resolve(process.cwd(), formatterName);
+    } else {
+        if (isFile(`${path.join(__dirname, "formatters/", formatterName)}.js`)) {
+            formatterPath = `${path.join(__dirname, "formatters/", formatterName)}.js`;
+        } else if (isFile(`${path.join(__dirname, "formatters/", formatterName)}.ts`)) {
+            formatterPath = `${path.join(__dirname, "formatters/", formatterName)}.ts`;
+        } else {
+            const pkgPath = tryResolve(`textlint-formatter-${formatterName}`) || tryResolve(formatterName);
+            if (pkgPath) {
+                formatterPath = pkgPath;
+            }
+        }
+    }
+    return formatterPath ? formatterPath : null;
+}
+
+/**
  * @deprecated use loadFormatter
  * @param formatterConfig
  */

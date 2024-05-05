@@ -10,6 +10,8 @@ import { createLinter } from "./createLinter";
 import { SeverityLevel } from "./shared/type/SeverityLevel";
 import { printResults, showEmptyRuleWarning } from "./cli-util";
 import { loadFixerFormatter, loadLinterFormatter } from "./formatter";
+import { resolveFormatter as resolveLinterFormatter } from "@textlint/linter-formatter";
+import { resolveFormatter as resolveFixerFormatter } from "@textlint/fixer-formatter";
 
 const debug = debug0("textlint:cli");
 type StdinExecuteOption = {
@@ -124,6 +126,12 @@ export const cli = {
             descriptor
         });
         if (cliOptions.fix) {
+            // Check if the fixer formatter can be resolved
+            const fixerFormatterPath = resolveFixerFormatter(cliOptions.format);
+            if (!fixerFormatterPath) {
+                Logger.error(`Could not find formatter ${cliOptions.format}`);
+                return Promise.resolve(1);
+            }
             // --fix
             const results = isStdinExecution(executeOptions)
                 ? [await linter.fixText(executeOptions.text, executeOptions.stdinFilename)]
@@ -155,6 +163,12 @@ export const cli = {
                 return 2;
             }
         } else {
+            // Check if the linter formatter can be resolved
+            const linterFormatterPath = resolveLinterFormatter(cliOptions.format);
+            if (!linterFormatterPath) {
+                Logger.error(`Could not find formatter ${cliOptions.format}`);
+                return Promise.resolve(1);
+            }
             // lint as default
             const results = isStdinExecution(executeOptions)
                 ? [await linter.lintText(executeOptions.text, executeOptions.stdinFilename)]
